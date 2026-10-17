@@ -1776,6 +1776,7 @@ CWave::CWave( CPopulationManager *manager ) : IPopulator( manager )
 	m_flBonusCreditsTime = 0;
 	m_isEveryContainedWaveSpawnDone = false;
 	m_flStartTime = 0;
+	m_bValidatedWaveSpawnDependencies = false;
 
 	m_doneTimer.Invalidate();
 }
@@ -1787,6 +1788,29 @@ CWave::~CWave()
 	delete m_doneOutput;
 	delete m_initOutput;
 	m_waveSpawnVector.PurgeAndDeleteElements();
+}
+
+//-------------------------------------------------------------------------
+// Validate a WaveSpawn's dependency reference and warn if it is empty or does not match another WaveSpawn in the same wave.
+static void ValidateWaveSpawnDependency( CWave *wave, CWaveSpawnPopulator *waveSpawn, const char *keyName, bool hasDependency, const CUtlString &dependencyName )
+{
+	if ( !hasDependency )
+		return;
+
+	const char *pszDependencyName = dependencyName.Get();
+	if ( !pszDependencyName || !pszDependencyName[ 0 ] )
+	{
+		Warning( "WaveSpawn '%s' has an empty %s dependency.\n",
+			waveSpawn->m_name.IsEmpty() ? "<unnamed>" : waveSpawn->m_name.Get(), keyName );
+		return;
+	}
+
+	if ( !wave->FindWaveSpawnPopulator( pszDependencyName ) )
+	{
+		Warning( "WaveSpawn '%s' has %s dependency on missing WaveSpawn '%s'.\n",
+			waveSpawn->m_name.IsEmpty() ? "<unnamed>" : waveSpawn->m_name.Get(),
+			keyName, pszDependencyName );
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -1899,6 +1923,21 @@ bool CWave::Parse( KeyValues *data )
 		{
 			Warning( "Unknown attribute '%s' in Wave definition.\n", kvWave->GetName() );
 		}
+	}
+
+	// Validate WaveSpawn dependencies to ensure they reference a valid WaveSpawn.
+	if ( !m_bValidatedWaveSpawnDependencies )
+	{
+		FOR_EACH_VEC( m_waveSpawnVector, i )
+		{
+			CWaveSpawnPopulator *waveSpawn = m_waveSpawnVector[ i ];
+			ValidateWaveSpawnDependency( this, waveSpawn, "WaitForAllSpawned", waveSpawn->m_bHasWaitForAllSpawned, waveSpawn->m_waitForAllSpawned );
+			ValidateWaveSpawnDependency( this, waveSpawn, "WaitForAllDead", waveSpawn->m_bHasWaitForAllDead, waveSpawn->m_waitForAllDead );
+			ValidateWaveSpawnDependency( this, waveSpawn, "SpawnUntilAllSpawned", waveSpawn->m_bHasSpawnUntilAllSpawned, waveSpawn->m_spawnUntilAllSpawned );
+			ValidateWaveSpawnDependency( this, waveSpawn, "SpawnUntilAllDead", waveSpawn->m_bHasSpawnUntilAllDead, waveSpawn->m_spawnUntilAllDead );
+		}
+
+		m_bValidatedWaveSpawnDependencies = true;
 	}
 
 	return true;

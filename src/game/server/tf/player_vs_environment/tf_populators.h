@@ -230,6 +230,10 @@ public:
 	CUtlString m_waitForAllDead;
     CUtlString m_spawnUntilAllSpawned;
     CUtlString m_spawnUntilAllDead;
+	bool m_bHasWaitForAllSpawned;
+	bool m_bHasWaitForAllDead;
+	bool m_bHasSpawnUntilAllSpawned;
+	bool m_bHasSpawnUntilAllDead;
 
 	bool IsDone( void ) const
 	{
@@ -393,6 +397,7 @@ private:
 
 	bool m_isEveryContainedWaveSpawnDone;
 	float m_flStartTime;
+	bool m_bValidatedWaveSpawnDependencies;
 };
 
 inline const char *CWave::GetDescription( void ) const
