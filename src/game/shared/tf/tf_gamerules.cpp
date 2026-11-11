@@ -2936,7 +2936,8 @@ bool CTFGameRules::PlayerReadyStatus_ArePlayersOnTeamReady( int iTeam )
 		return true;
 
 	CMatchInfo *pMatch = GTFGCClientSystem()->GetMatch();
-	if ( pMatch )
+	// MvM readiness is based on the players currently connected to the server.
+	if ( pMatch && !IsMannVsMachineMode() )
 	{
 		int nMatchPlayers = pMatch->GetNumTotalMatchPlayers();
 		if ( nMatchPlayers <= 0 )
@@ -13363,7 +13364,8 @@ void CTFGameRules::ClientDisconnected( edict_t *pClient )
 							}
 						}
 
-						if ( bEveryoneReady )
+						// MvM should start for the remaining ready players after this player leaves.
+						if ( bEveryoneReady && !IsMannVsMachineMode() )
 						{
 							PlayerReadyStatus_ResetState();
 						}
